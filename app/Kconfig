@@ -1,0 +1,10 @@
+config BLINK_SLEEP_TIME_MS
+    int "LED BLINK"
+    default 15
+    range 10 5000
+    help
+
+      help string multiline 
+
+source "Kconfig"
+         
