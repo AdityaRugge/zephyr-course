@@ -1,10 +1,24 @@
-config BLINK_SLEEP_TIME_MS
-    int "LED BLINK"
-    default 15
-    range 10 5000
-    help
+choice
+    prompt "LED_BLINK_SPEED"
+    default BLINK_SLEEP_500MS
 
-      help string multiline 
+config  BLINK_SLEEP_500MS
+    bool "SLOW"
+
+config  BLINK_SLEEP_200MS
+    bool "Medium"
+
+config  BLINK_SLEEP_100MS
+    bool "FAST"
+
+endchoice
+
+config BLINK_SLEEP_TIME_MS
+    int
+    default 100 if BLINK_SLEEP_100MS
+    default 200 if BLINK_SLEEP_200MS
+    default 500 if BLINK_SLEEP_500MS
+    default 0
 
 source "Kconfig"
          
