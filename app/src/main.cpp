@@ -1,10 +1,11 @@
 #include <zephyr/kernel.h>
 #include <zephyr/drivers/sensor.h>
 #include <zephyr/device.h>
+#include <zephyr/devicetree.h>
 
 int main(void)
 {
-    const struct device *dev = DEVICE_DT_GET_ANY(ST_led_sensor);
+    const struct device *dev = DEVICE_DT_GET(DT_NODELABEL(led_sensor_0));
 
     if (!device_is_ready(dev)) {
         printk("LED Sensor is not ready\n");

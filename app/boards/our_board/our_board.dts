@@ -55,6 +55,12 @@
 		pwm-led0 = &green_pwm_led;
 		sw0 = &user_button;
 	};
+
+	led_sensor_0: led_sensor {
+		compatible = "st,led-sensor";
+		gpios = <&gpioa 5 GPIO_ACTIVE_HIGH>;
+		status = "okay";
+	};
 };
 
 &clk_lsi {

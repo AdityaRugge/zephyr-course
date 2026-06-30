@@ -1,5 +1,6 @@
-#define DT_DRV_COMPAT ST_led_sensor
+#define DT_DRV_COMPAT st_led_sensor
 
+#include <errno.h>
 #include <zephyr/device.h>
 #include <zephyr/drivers/sensor.h>
 #include <zephyr/drivers/gpio.h>
@@ -7,6 +8,12 @@
 #include "../../include/led_sensor/led_sensor.h"
 
 LOG_MODULE_REGISTER(led_sensor, CONFIG_SENSOR_LOG_LEVEL);
+
+static int led_sensor_sample_fetch(const struct device *dev,
+                                   enum sensor_channel chan);
+static int led_sensor_channel_get(const struct device *dev,
+                                  enum sensor_channel chan,
+                                  struct sensor_value *val);
 
 /* sensor channel get */
 static int led_sensor_channel_get(const struct device *dev,
@@ -20,7 +27,7 @@ static int led_sensor_channel_get(const struct device *dev,
     data->led_state = false;
     val->val1 = 0;
     val->val2 = 0;
-    LOG_INF("LED apagado (channel_get)");
+    LOG_INF("LED(get)");
     return 0;
 }
 
@@ -38,7 +45,7 @@ static int led_sensor_sample_fetch(const struct device *dev,
 
     gpio_pin_set_dt(&cfg->led_gpio, 1);
     data->led_state = true;
-    LOG_INF("LED encendido (fetch)");
+    LOG_INF("LED(fetch)");
     return 0;
 }
 
@@ -48,11 +55,11 @@ static int led_sensor_init(const struct device *dev)
     const struct led_sensor_config *cfg = dev->config;
 
     if (!gpio_is_ready_dt(&cfg->led_gpio)) {
-        LOG_ERR("GPIO no está listo");
+        LOG_ERR("GPIO is not ready");
         return -ENODEV;
     }
     gpio_pin_configure_dt(&cfg->led_gpio, GPIO_OUTPUT_INACTIVE);
-    LOG_INF("LED sensor inicializado");
+    LOG_INF("LED sensor initialized");
     return 0;
 }
 

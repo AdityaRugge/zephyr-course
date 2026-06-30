@@ -1,6 +1,6 @@
 description: On-board LED used as a sensor device
 
-compatible: "ST,led-sensor"
+compatible: "st,led-sensor"
 
 include: base.yaml
 
