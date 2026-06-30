@@ -2,6 +2,7 @@
 #include <zephyr/drivers/sensor.h>
 #include <zephyr/device.h>
 #include <zephyr/devicetree.h>
+#include <led_sensor/led_sensor.h>
 
 int main(void)
 {
@@ -11,6 +12,10 @@ int main(void)
         printk("LED Sensor is not ready\n");
         return -ENODEV;
     }
+
+    /* Task 2: API custom */
+    led_sensor_set_message(dev, "Hello from main!");
+    led_sensor_set_toggle_count(dev, 5);
 
     while (1) {
 
