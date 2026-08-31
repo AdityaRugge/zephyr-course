@@ -1,0 +1,143 @@
+name: Zephyr CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  ZEPHYR_BASE: ${{ github.workspace }}/zephyr
+
+jobs:
+  build:
+    name: Build ${{ matrix.board }}
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        board:
+          - qemu_x86
+          - nucleo_f446re
+          - native_sim
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+        with:
+          path: app
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Set up Zephyr west workspace
+        uses: zephyrproject-rtos/action-zephyr-setup@v1
+        with:
+          app-path: app
+          toolchains: arm-zephyr-eabi:x86_64-zephyr-elf
+
+      - name: Build application
+        run: west build -p always -b "${{ matrix.board }}" app/app --build-dir "build/${{ matrix.board }}" -- -DZEPHYR_BASE="$GITHUB_WORKSPACE/zephyr"
+
+      - name: Upload firmware artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.board }}-firmware
+          if-no-files-found: error
+          path: |
+            build/${{ matrix.board }}/zephyr/zephyr.elf
+            build/${{ matrix.board }}/zephyr/zephyr.bin
+            build/${{ matrix.board }}/zephyr/zephyr.hex
+            build/${{ matrix.board }}/zephyr/zephyr.exe
+
+  qemu-test:
+    name: Run QEMU test
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+        with:
+          path: app
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Set up Zephyr west workspace
+        uses: zephyrproject-rtos/action-zephyr-setup@v1
+        with:
+          app-path: app
+          toolchains: arm-zephyr-eabi:x86_64-zephyr-elf
+
+      - name: Install QEMU
+        run: sudo apt-get update && sudo apt-get install -y qemu-system-x86
+
+      - name: Build QEMU image
+        run: west build -p always -b qemu_x86 app/app --build-dir build/qemu_x86 -- -DZEPHYR_BASE="$GITHUB_WORKSPACE/zephyr"
+
+      - name: Run image and verify application result
+        run: |
+          set +e
+          timeout 15s west build -d build/qemu_x86 -t run 2>&1 | tee qemu.log
+          qemu_status=${PIPESTATUS[0]}
+          set -e
+
+          if [ "$qemu_status" -ne 0 ] && [ "$qemu_status" -ne 124 ]; then
+            exit "$qemu_status"
+          fi
+          grep -q "Status: PASS" qemu.log
+
+      - name: Upload QEMU log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: qemu-test-log
+          path: qemu.log
+          if-no-files-found: warn
+
+  native-sim-test:
+    name: Run native_sim test
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+        with:
+          path: app
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Set up Zephyr west workspace
+        uses: zephyrproject-rtos/action-zephyr-setup@v1
+        with:
+          app-path: app
+          toolchains: x86_64-zephyr-elf
+
+      - name: Build native_sim image
+        run: west build -p always -b native_sim app/app --build-dir build/native_sim -- -DZEPHYR_BASE="$GITHUB_WORKSPACE/zephyr"
+
+      - name: Run native_sim image and verify application result
+        run: |
+          set +e
+          timeout 15s ./build/native_sim/zephyr/zephyr.exe 2>&1 | tee native_sim.log
+          native_sim_status=${PIPESTATUS[0]}
+          set -e
+
+          if [ "$native_sim_status" -ne 0 ] && [ "$native_sim_status" -ne 124 ]; then
+            exit "$native_sim_status"
+          fi
+          grep -q "Status: PASS" native_sim.log
+
+      - name: Upload native_sim log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: native-sim-test-log
+          path: native_sim.log
+          if-no-files-found: warn
